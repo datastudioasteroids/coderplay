@@ -1,5 +1,4 @@
-streamlit
-google-generativeai
-PyPDF2
-docx2txt
-hugchat
+requests>=2.28
+huggingface_hub>=0.18.0
+python-docx>=0.8.11
+PyPDF2>=3.0.0
