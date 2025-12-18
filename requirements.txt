@@ -1,1 +1,4 @@
-requirements.txt
+streamlit
+google-generativeai
+PyPDF2
+docx2txt
