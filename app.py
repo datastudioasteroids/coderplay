@@ -24,16 +24,13 @@ ROLES = {
     }
 }
 
-# Inicialización de estado de sesión para usuario y configuración
+# Inicialización de estado de sesión para el nombre del usuario
 if "user_name" not in st.session_state:
     st.session_state.user_name = ""
-if "api_configured" not in st.session_state:
-    st.session_state.api_configured = False
 
 # Barra Lateral
 with st.sidebar:
     st.header("👤 Perfil de Usuario")
-    # Entrada para el nombre del usuario
     name_input = st.text_input("¿Cómo te llamas?", value=st.session_state.user_name)
     if name_input:
         st.session_state.user_name = name_input
@@ -41,13 +38,20 @@ with st.sidebar:
     st.divider()
     
     st.header("🏥 Configuración de IA")
-    provider = st.selectbox("Elegir Proveedor", ["Gemini", "Hugging Chat"])
+    provider = st.selectbox("Proveedor de IA", ["Gemini", "Hugging Chat"])
     
-    help_text = "API Key para Gemini" if provider == "Gemini" else "Formato 'email:password'"
-    api_key = st.text_input(f"Credenciales ({provider})", type="password", help=help_text)
-    
-    if api_key:
-        st.session_state.api_configured = True
+    # Obtención de credenciales desde Streamlit Secrets
+    try:
+        if provider == "Gemini":
+            api_key = st.secrets["GEMINI_API_KEY"]
+            st.success("✅ Gemini configurado via Secrets")
+        else:
+            # Para Hugging Chat esperamos un secreto llamado HUGGING_CHAT_LOGIN con formato "email:pass"
+            api_key = st.secrets["HUGGING_CHAT_LOGIN"]
+            st.success("✅ Hugging Chat configurado via Secrets")
+    except Exception:
+        st.error(f"❌ No se encontraron secretos para {provider} en la configuración.")
+        api_key = None
     
     st.divider()
     
@@ -73,8 +77,8 @@ for msg in st.session_state.messages:
 
 # Input de usuario
 if prompt := st.chat_input("Haz tu pregunta médica aquí..."):
-    if not st.session_state.api_configured:
-        st.warning(f"Por favor, ingresa las credenciales de {provider} en la barra lateral.")
+    if not api_key:
+        st.error(f"⚠️ Las credenciales de {provider} no están configuradas en los Secretos de Streamlit.")
     elif not uploaded_file:
         st.warning("Primero debes subir un documento para analizar.")
     else:
