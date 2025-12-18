@@ -1,26 +1,46 @@
-import docx2txt
+# document_processor.py
+from io import BytesIO
 import PyPDF2
-import io
+import docx
 
-def extract_text_from_file(uploaded_file):
+def extract_text_from_file(uploaded_file) -> str:
     """
-    Extrae el texto de archivos cargados según su extensión.
-    Soporta: .txt, .pdf, .docx
+    uploaded_file: objeto tipo UploadedFile de Streamlit
+    Devuelve texto concatenado del archivo (txt, pdf, docx).
     """
-    file_extension = uploaded_file.name.split('.')[-1].lower()
-    
-    if file_extension == 'txt':
-        return str(uploaded_file.read(), "utf-8")
-        
-    elif file_extension == 'pdf':
-        pdf_reader = PyPDF2.PdfReader(uploaded_file)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text() + "\n"
-        return text
-        
-    elif file_extension == 'docx':
-        return docx2txt.process(uploaded_file)
-        
-    else:
-        return None
+    if not uploaded_file:
+        return ""
+    filename = uploaded_file.name.lower()
+    content = uploaded_file.read()
+
+    if filename.endswith(".txt"):
+        try:
+            return content.decode("utf-8", errors="replace")
+        except Exception:
+            return content.decode("latin-1", errors="replace")
+
+    if filename.endswith(".pdf"):
+        text_parts = []
+        try:
+            reader = PyPDF2.PdfReader(BytesIO(content))
+            for page in reader.pages:
+                text_parts.append(page.extract_text() or "")
+            return "\n".join(text_parts)
+        except Exception as e:
+            # fallback simple
+            return f"[No se pudo extraer PDF: {e}]"
+
+    if filename.endswith(".docx"):
+        try:
+            doc = docx.Document(BytesIO(content))
+            paragraphs = [p.text for p in doc.paragraphs if p.text]
+            return "\n".join(paragraphs)
+        except Exception as e:
+            return f"[No se pudo extraer DOCX: {e}]"
+
+    # fallback: intentar decode
+    try:
+        return content.decode("utf-8", errors="replace")
+    except Exception:
+        return str(content)
+
