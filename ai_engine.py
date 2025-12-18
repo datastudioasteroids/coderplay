@@ -85,7 +85,7 @@ def get_llm_response(provider: str,
                 if "generated_texts" in resp and resp["generated_texts"]:
                     return resp["generated_texts"][0]
                 # o dict con 'results'
-            # otras versiones devuelven un objeto complejo; convertir a string si es necesario
+            # otras versiones devuelven un objeto complejo; convertir a string si es necesariof
             try:
                 return str(resp)
             except Exception:
