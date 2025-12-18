@@ -24,13 +24,30 @@ ROLES = {
     }
 }
 
+# Inicialización de estado de sesión para usuario y configuración
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
+if "api_configured" not in st.session_state:
+    st.session_state.api_configured = False
+
 # Barra Lateral
 with st.sidebar:
-    st.header("🏥 Configuración")
-    provider = st.selectbox("Elegir IA", ["Gemini", "Hugging Chat"])
+    st.header("👤 Perfil de Usuario")
+    # Entrada para el nombre del usuario
+    name_input = st.text_input("¿Cómo te llamas?", value=st.session_state.user_name)
+    if name_input:
+        st.session_state.user_name = name_input
+
+    st.divider()
+    
+    st.header("🏥 Configuración de IA")
+    provider = st.selectbox("Elegir Proveedor", ["Gemini", "Hugging Chat"])
     
     help_text = "API Key para Gemini" if provider == "Gemini" else "Formato 'email:password'"
     api_key = st.text_input(f"Credenciales ({provider})", type="password", help=help_text)
+    
+    if api_key:
+        st.session_state.api_configured = True
     
     st.divider()
     
@@ -43,7 +60,8 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Subir informe médico", type=["pdf", "docx", "txt"])
 
 # Area Principal
-st.title(f"{rol_info['icon']} Consulta con tu {rol_nombre}")
+saludo = f", {st.session_state.user_name}" if st.session_state.user_name else ""
+st.title(f"{rol_info['icon']} Consulta con tu {rol_nombre}{saludo}")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -55,8 +73,8 @@ for msg in st.session_state.messages:
 
 # Input de usuario
 if prompt := st.chat_input("Haz tu pregunta médica aquí..."):
-    if not api_key:
-        st.warning(f"Faltan las credenciales de {provider}")
+    if not st.session_state.api_configured:
+        st.warning(f"Por favor, ingresa las credenciales de {provider} en la barra lateral.")
     elif not uploaded_file:
         st.warning("Primero debes subir un documento para analizar.")
     else:
@@ -67,7 +85,7 @@ if prompt := st.chat_input("Haz tu pregunta médica aquí..."):
 
         # Generar respuesta
         with st.chat_message("assistant"):
-            with st.spinner(f"El {rol_nombre} está leyendo el documento..."):
+            with st.spinner(f"El {rol_nombre} está analizando la información para ti..."):
                 try:
                     context = extract_text_from_file(uploaded_file)
                     response = get_llm_response(
@@ -80,4 +98,4 @@ if prompt := st.chat_input("Haz tu pregunta médica aquí..."):
                     st.markdown(response)
                     st.session_state.messages.append({"role": "assistant", "content": response})
                 except Exception as e:
-                    st.error(f"Hubo un problema: {e}")
+                    st.error(f"Hubo un problema técnico: {e}")
